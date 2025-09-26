@@ -51,6 +51,27 @@ export default function Home() {
     setGame(createNewGame());
   };
 
+  /*--------- diable buttons ----------*/
+  const isButtonDisabled = (pins: number): boolean => {
+    if (game.isGameComplete) return true;
+
+    const currentFrame = game.frames[game.currentFrame];
+
+    if (game.currentRoll === 1 && game.currentFrame < 9) {
+      const firstRollPins = currentFrame.rolls[0].pins || 0;
+      return firstRollPins + pins > 10;
+    }
+
+    if (game.currentFrame === 9 && game.currentRoll === 1) {
+      const roll1 = currentFrame.rolls[0].pins;
+      if (roll1 !== null && roll1 !== 10 && roll1 + pins > 10) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   /*--------- format roll display ----------*/
   const formatRoll = (frameIndex: number, rollIndex: number): string => {
     const frame = game.frames[frameIndex];
@@ -83,7 +104,7 @@ export default function Home() {
     <div className="flex justify-center sm:h-screen items-center">
       {/*--------- Hero section ----------*/}
       <section className="grid bg-gradient-to-r from-gray-900 to-neutral-900 w-full m-5 sm:mx-20 rounded-2xl overflow-hidden border-2 border-white pt-4">
-        <h1 className="text-center font-bold text-white/90">Här ska du räkna dina bowling pöengar</h1>
+        <h1 className="text-center font-bold text-white/90">Här ska du räkna dina bowling poäng</h1>
         {/*--------- add user section ----------*/}
         <section className="sm:flex grid gap-4 sm:justify-between justify-center items-center p-2">
           {!currentUser ? (
@@ -155,7 +176,7 @@ export default function Home() {
                   // Frame 10: Three roll boxes
                   <div className="flex justify-center">
                     <div className="w-full text-center text-white font-bold py-1">{formatRoll(i, 0)}</div>
-                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
+                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold min-h-8">
                       {formatRoll(i, 1)}
                     </div>
                     <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
@@ -173,6 +194,7 @@ export default function Home() {
         {/*--------- Number pad section ----------*/}
         {!game.isGameComplete && (
           <section className="grid mt-10 justify-center">
+            <h1 className="text-center font-bold">Totalt poäng hittils: {game.totalScore}</h1>
             <h1 className="font-medium text-white/50 text-center">
               {currentUser &&
                 `Hej ${currentUser}! ange antal käglor till frame ${game.currentFrame + 1}, roll ${
@@ -183,19 +205,35 @@ export default function Home() {
                 `Hej! ange antal käglor till frame ${game.currentFrame + 1}, roll ${game.currentRoll + 1}`}
             </h1>
             <div className="sm:flex grid grid-cols-6 p-3 items-center justify-center gap-1 w-fit">
+              {/* 0 button */}
               <button
                 onClick={() => recordRoll(0)}
-                className="px-4 py-2 rounded-md bg-gray-600 font-bold font-sans hover:scale-115 hover:bg-gray-400 transition-all duration-200 cursor-pointer text-white">
+                disabled={isButtonDisabled(0)}
+                className={`px-4 py-2 rounded-md font-bold font-sans transition-all duration-200 ${
+                  isButtonDisabled(0)
+                    ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                    : "bg-gray-600 text-white hover:scale-115 hover:bg-gray-400 cursor-pointer"
+                }`}>
                 0
               </button>
-              {Array.from({ length: 10 }).map((_, i) => (
-                <button
-                  onClick={() => recordRoll(i + 1)}
-                  className="px-4 py-2 rounded-md bg-gray-600 font-bold font-sans hover:scale-115 hover:bg-gray-400 transition-all duration-200 cursor-pointer text-white"
-                  key={i}>
-                  {i + 1}
-                </button>
-              ))}
+              {/* 1-10 buttons */}
+              {Array.from({ length: 10 }).map((_, i) => {
+                const pins = i + 1;
+                const disabled = isButtonDisabled(pins);
+                return (
+                  <button
+                    onClick={() => recordRoll(pins)}
+                    disabled={disabled}
+                    className={`px-4 py-2 rounded-md font-bold font-sans transition-all duration-200 ${
+                      disabled
+                        ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                        : "bg-gray-600 text-white hover:scale-115 hover:bg-gray-400 cursor-pointer"
+                    }`}
+                    key={i}>
+                    {pins}
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}
@@ -203,8 +241,8 @@ export default function Home() {
         {/*--------- Game complete message  ----------*/}
         {game.isGameComplete && (
           <section className="grid mt-10 justify-center">
-            <h1 className="font-bold text-white text-center text-xl">
-              {currentUser && `${currentUser}`}Spel avslutat! Slutresultat: {game.totalScore}
+            <h1 className="font-bold text-white text-center text-xl pb-2">
+              {currentUser && `${currentUser}`}Spel avslutat med totalt {game.totalScore} poäng
             </h1>
           </section>
         )}
