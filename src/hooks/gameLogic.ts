@@ -16,7 +16,7 @@ export interface BowlingGame {
   isGameComplete: boolean;
 }
 
-/*------------------- new game sesstion -------------------*/
+/*------------------- new game sessison -------------------*/
 export function createNewGame(): BowlingGame {
   return {
     frames: Array.from({ length: 10 }, () => ({
@@ -28,4 +28,35 @@ export function createNewGame(): BowlingGame {
     totalScore: 0,
     isGameComplete: false,
   };
+}
+
+export function addRoll(game: BowlingGame, pins: number): BowlingGame {
+  if (game.isGameComplete) {
+    return game;
+  }
+
+  const newGame = { ...game, frames: [...game.frames] };
+  const currentFrame = { ...newGame.frames[newGame.currentFrame] };
+  currentFrame.rolls = [...currentFrame.rolls];
+  newGame.frames[newGame.currentFrame] = currentFrame;
+
+  currentFrame.rolls[newGame.currentRoll].pins = pins;
+
+  if (newGame.currentRoll === 0) {
+    if (pins === 10) {
+      newGame.currentFrame++;
+      newGame.currentRoll = 0;
+    } else {
+      newGame.currentRoll = 1;
+    }
+  } else {
+    newGame.currentFrame++;
+    newGame.currentRoll = 0;
+  }
+
+  if (newGame.currentFrame >= 10) {
+    newGame.isGameComplete = true;
+  }
+
+  return newGame;
 }
