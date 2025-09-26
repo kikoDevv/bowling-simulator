@@ -165,7 +165,7 @@ export function calculateBasicScores(game: BowlingGame): void {
 }
 
 function calculateStrikeScore(game: BowlingGame, frameIndex: number): number | null {
-  let bonus = getNextTwoRolls(game, frameIndex);
+  const bonus = getNextTwoRolls(game, frameIndex);
 
   if (bonus === null) {
     return null;
@@ -175,7 +175,7 @@ function calculateStrikeScore(game: BowlingGame, frameIndex: number): number | n
 }
 
 function calculateSpareScore(game: BowlingGame, frameIndex: number): number | null {
-  let bonus = getNextOneRoll(game, frameIndex);
+  const bonus = getNextOneRoll(game, frameIndex);
 
   if (bonus === null) {
     return null; // Can't calculate yet, need more rolls

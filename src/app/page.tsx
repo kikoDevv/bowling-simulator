@@ -104,11 +104,11 @@ export default function Home() {
                     onChange={(e) => setUserName(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Skriv ditt namn här"
-                    className="bg-white/20 rounded-md pl-2 placeholder:font-semibold font-bold text-white outline-1"
+                    className="bg-white/20 rounded-md pl-1 py-1 font-semibold text-white outline-1"
                   />
                   <button
                     onClick={addUser}
-                    className="bg-green-500 ml-2 rounded-full p-1 hover:scale-110 hover:bg-green-400 transition-all duration-300 cursor-pointer">
+                    className="bg-green-500 rounded-full p-1 hover:scale-110 hover:bg-green-400 transition-all duration-300 cursor-pointer">
                     <IoMdCheckmarkCircleOutline className="text-xl" />
                   </button>
                 </div>
@@ -138,16 +138,18 @@ export default function Home() {
         {/*--------- loop score container ----------*/}
         <section className="grid sm:flex">
           {game.frames.map((frame, i) => (
-            <div className={`grid w-full ${game.currentFrame === i ? "bg-blue-900/30" : ""}`} key={i}>
+            <div className={`grid w-full ${game.currentFrame === i ? "bg-blue-900" : ""}`} key={i}>
               <p className="text-center border border-gray-400 text-white font-semibold">{i + 1}</p>
               <div className="grid bg-gray-800/90 border-l border-b-2 rounded-b-md border-gray-400">
                 {i < 9 ? (
                   // Frames 1-9: Two roll boxes
                   <div className="flex justify-center">
-                    <div className="w-full text-center text-white font-bold py-1">{formatRoll(i, 0)}</div>
-                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
+                    <p className="w-full flex justify-center items-center text-white font-bold min-h-8">
+                      {formatRoll(i, 0)}
+                    </p>
+                    <p className="w-full border border-r-0 border-t-0 min-h-8 border-gray-400 flex justify-center items-center text-white font-bold">
                       {formatRoll(i, 1)}
-                    </div>
+                    </p>
                   </div>
                 ) : (
                   // Frame 10: Three roll boxes
@@ -161,7 +163,9 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-                <div className="text-center py-3 text-white font-bold text-lg">{frame.score || ""}</div>
+                <h3 className="flex justify-center items-center text-white font-bold text-lg min-h-10">
+                  {frame.score || ""}
+                </h3>
               </div>
             </div>
           ))}
@@ -171,9 +175,12 @@ export default function Home() {
           <section className="grid mt-10 justify-center">
             <h1 className="font-medium text-white/50 text-center">
               {currentUser &&
-                `Hej ${currentUser}! ange
-              antal käglor  till frame `}{" "}
-              ,{game.currentFrame + 1}, roll {game.currentRoll + 1}
+                `Hej ${currentUser}! ange antal käglor till frame ${game.currentFrame + 1}, roll ${
+                  game.currentRoll + 1
+                }`}
+
+              {!currentUser &&
+                `Hej! ange antal käglor till frame ${game.currentFrame + 1}, roll ${game.currentRoll + 1}`}
             </h1>
             <div className="sm:flex grid grid-cols-6 p-3 items-center justify-center gap-1 w-fit">
               <button
@@ -197,7 +204,7 @@ export default function Home() {
         {game.isGameComplete && (
           <section className="grid mt-10 justify-center">
             <h1 className="font-bold text-white text-center text-xl">
-              {currentUser && `${currentUser}  `}Spel avslutat! Slutresultat: {game.totalScore}
+              {currentUser && `${currentUser}`}Spel avslutat! Slutresultat: {game.totalScore}
             </h1>
           </section>
         )}
