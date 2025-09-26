@@ -1,12 +1,16 @@
 "use client";
 import { IoMdPersonAdd, IoMdTrash, IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { useState, useRef, useEffect } from "react";
+import { createNewGame, addRoll, type BowlingGame } from "../hooks/gameLogic";
 
 export default function Home() {
   const [isInputOpen, setInputOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /*--------- Bowling game state ----------*/
+  const [game, setGame] = useState<BowlingGame>(createNewGame());
 
   /*--------- Focus input when opened ----------*/
   useEffect(() => {
@@ -34,6 +38,44 @@ export default function Home() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       addUser();
+    }
+  };
+
+  // Bowling game functions
+  const recordRoll = (pins: number) => {
+    const newGame = addRoll(game, pins);
+    setGame(newGame);
+  };
+
+  const resetGame = () => {
+    setGame(createNewGame());
+  };
+
+  /*--------- format roll display ----------*/
+  const formatRoll = (frameIndex: number, rollIndex: number): string => {
+    const frame = game.frames[frameIndex];
+    const roll = frame.rolls[rollIndex];
+
+    if (!roll || roll.pins === null) return "";
+
+    if (frameIndex < 9) {
+      // Frames 1-9
+      if (rollIndex === 0 && roll.pins === 10) return "X";
+      if (rollIndex === 1 && frame.isSpare) return "/";
+      if (roll.pins === 0) return "-";
+      return roll.pins.toString();
+    } else {
+      // Frame 10
+      if (roll.pins === 10) return "X";
+      if (
+        rollIndex > 0 &&
+        frame.rolls[rollIndex - 1].pins !== 10 &&
+        frame.rolls[rollIndex - 1].pins !== null &&
+        frame.rolls[rollIndex - 1].pins! + roll.pins === 10
+      )
+        return "/";
+      if (roll.pins === 0) return "-";
+      return roll.pins.toString();
     }
   };
 
@@ -86,39 +128,79 @@ export default function Home() {
             </>
           )}
 
-          <button className="flex items-center gap-1 bg-gray-600 rounded-md px-3 py-1 text-white hover:bg-gray-500 cursor-pointer transition-all duration-300 group hover:scale-103">
-            <IoMdTrash className="group-hover:scale-120 group-hover:text-red-500 transition-all duration-300" />
-            Tabort listan
+          <button
+            onClick={resetGame}
+            className="flex items-center gap-1 bg-red-600 rounded-md px-3 py-1 text-white hover:bg-red-500 cursor-pointer transition-all duration-300 group hover:scale-103">
+            <IoMdTrash className="group-hover:scale-120 group-hover:text-red-300 transition-all duration-300" />
+            Nollställ spel
           </button>
         </section>
         {/*--------- loop score container ----------*/}
         <section className="grid sm:flex">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div className="grid w-full" key={i}>
-              <p className="text-center border border-gray-400">{i + 1}</p>
+          {game.frames.map((frame, i) => (
+            <div className={`grid w-full ${game.currentFrame === i ? "bg-blue-900/30" : ""}`} key={i}>
+              <p className="text-center border border-gray-400 text-white font-semibold">{i + 1}</p>
               <div className="grid bg-gray-800/90 border-l border-b-2 rounded-b-md border-gray-400">
-                <div className="flex justify-center">
-                  <h1 className="w-full text-center">1</h1>
-                  <h1 className="w-full border border-r-0 border-t-0 border-gray-400 text-center">2</h1>
-                </div>
-                <h1 className="text-center py-3">Total</h1>
+                {i < 9 ? (
+                  // Frames 1-9: Two roll boxes
+                  <div className="flex justify-center">
+                    <div className="w-full text-center text-white font-bold py-1">{formatRoll(i, 0)}</div>
+                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
+                      {formatRoll(i, 1)}
+                    </div>
+                  </div>
+                ) : (
+                  // Frame 10: Three roll boxes
+                  <div className="flex justify-center">
+                    <div className="w-full text-center text-white font-bold py-1">{formatRoll(i, 0)}</div>
+                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
+                      {formatRoll(i, 1)}
+                    </div>
+                    <div className="w-full border border-r-0 border-t-0 border-gray-400 text-center text-white font-bold py-1">
+                      {formatRoll(i, 2)}
+                    </div>
+                  </div>
+                )}
+                <div className="text-center py-3 text-white font-bold text-lg">{frame.score || ""}</div>
               </div>
             </div>
           ))}
         </section>
         {/*--------- Number pad section ----------*/}
-        <section className="grid mt-10 justify-center">
-          <h1 className="font-medium text-white/50 text-center">Här kan du ange vad du fick för pöeng</h1>
-          <div className="sm:flex grid grid-cols-5 p-3 items-center justify-center gap-1 w-fit">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <h1
-                className="px-4 py-2 rounded-md bg-gray-600 font-bold font-sans hover:scale-115 hover:bg-gray-400 transition-all duration-200 cursor-pointer"
-                key={i}>
-                {i + 1}
-              </h1>
-            ))}
-          </div>
-        </section>
+        {!game.isGameComplete && (
+          <section className="grid mt-10 justify-center">
+            <h1 className="font-medium text-white/50 text-center">
+              {currentUser &&
+                `Hej ${currentUser}! ange
+              antal käglor  till frame `}{" "}
+              ,{game.currentFrame + 1}, roll {game.currentRoll + 1}
+            </h1>
+            <div className="sm:flex grid grid-cols-6 p-3 items-center justify-center gap-1 w-fit">
+              <button
+                onClick={() => recordRoll(0)}
+                className="px-4 py-2 rounded-md bg-gray-600 font-bold font-sans hover:scale-115 hover:bg-gray-400 transition-all duration-200 cursor-pointer text-white">
+                0
+              </button>
+              {Array.from({ length: 10 }).map((_, i) => (
+                <button
+                  onClick={() => recordRoll(i + 1)}
+                  className="px-4 py-2 rounded-md bg-gray-600 font-bold font-sans hover:scale-115 hover:bg-gray-400 transition-all duration-200 cursor-pointer text-white"
+                  key={i}>
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/*--------- Game complete message  ----------*/}
+        {game.isGameComplete && (
+          <section className="grid mt-10 justify-center">
+            <h1 className="font-bold text-white text-center text-xl">
+              {currentUser && `${currentUser}  `}Spel avslutat! Slutresultat: {game.totalScore}
+            </h1>
+          </section>
+        )}
       </section>
     </div>
   );
