@@ -19,11 +19,11 @@ export interface BowlingGame {
   isGameComplete: boolean;
 }
 
-/*------------------- new game sesstion -------------------*/
+/*------------------- new game session -------------------*/
 export function createNewGame(): BowlingGame {
   return {
-    frames: Array.from({ length: 10 }, () => ({
-      rolls: [{ pins: null }, { pins: null }],
+    frames: Array.from({ length: 10 }, (_, index) => ({
+      rolls: index === 9 ? [{ pins: null }, { pins: null }, { pins: null }] : [{ pins: null }, { pins: null }],
       score: null,
       isStrike: false,
       isSpare: false,
@@ -41,11 +41,31 @@ export function addRoll(game: BowlingGame, pins: number): BowlingGame {
     return game;
   }
 
+  /*------------------- Input validation -------------------*/
+  if (pins < 0 || pins > 10) {
+    return game;
+  }
+
   /*------------------- copy of the game state -------------------*/
   const newGame = { ...game, frames: [...game.frames] };
   const currentFrame = { ...newGame.frames[newGame.currentFrame] };
   currentFrame.rolls = [...currentFrame.rolls];
   newGame.frames[newGame.currentFrame] = currentFrame;
+
+  /*------------------- dont go higher than pin selected -------------------*/
+  if (newGame.currentRoll === 1 && newGame.currentFrame < 9) {
+    const firstRollPins = currentFrame.rolls[0].pins || 0;
+    if (firstRollPins + pins > 10) {
+      return game;
+    }
+  }
+
+  if (newGame.currentFrame === 9 && newGame.currentRoll === 1) {
+    const roll1 = currentFrame.rolls[0].pins;
+    if (roll1 !== null && roll1 !== 10 && roll1 + pins > 10) {
+      return game;
+    }
+  }
 
   currentFrame.rolls[newGame.currentRoll].pins = pins;
 
@@ -98,23 +118,18 @@ export function addRoll(game: BowlingGame, pins: number): BowlingGame {
 /*------------------- Handle special 10th frame -------------------*/
 function handleTenthFrameLogic(game: BowlingGame): void {
   const tenthFrame = game.frames[9];
+  const roll1 = tenthFrame.rolls[0]?.pins;
+  const roll2 = tenthFrame.rolls[1]?.pins;
+  const roll3 = tenthFrame.rolls[2]?.pins;
 
-  if (tenthFrame.rolls.length < 3) {
-    tenthFrame.rolls.push({ pins: null });
-  }
+  const firstRollStrike = roll1 === 10;
+  const spare = roll1 !== null && roll2 !== null && roll1 !== 10 && roll1 + roll2 === 10;
+  const needsThirdRoll = firstRollStrike || spare;
 
-  const roll1 = tenthFrame.rolls[0].pins;
-  const roll2 = tenthFrame.rolls[1].pins;
-  const roll3 = tenthFrame.rolls[2].pins;
-
-  const needsBonusRoll = roll1 === 10 || (roll1 !== null && roll2 !== null && roll1 + roll2 === 10);
-
-  if (needsBonusRoll) {
-    if (roll3 === null) {
-      game.currentFrame = 9;
-      game.currentRoll = 2;
+  if (needsThirdRoll) {
+    if (roll3 === null && game.currentRoll < 2) {
       game.isGameComplete = false;
-    } else {
+    } else if (roll3 !== null) {
       game.isGameComplete = true;
     }
   } else {
@@ -185,58 +200,80 @@ function calculateSpareScore(game: BowlingGame, frameIndex: number): number | nu
 }
 
 function getNextTwoRolls(game: BowlingGame, frameIndex: number): number | null {
-  // Special case: 10th frame strike
-  if (frameIndex === 9) {
+  if (frameIndex === 8) {
     const tenthFrame = game.frames[9];
-    const roll2 = tenthFrame.rolls[1].pins;
-    const roll3 = tenthFrame.rolls[2].pins;
+    const roll1 = tenthFrame.rolls[0]?.pins;
+    const roll2 = tenthFrame.rolls[1]?.pins;
 
-    if (roll2 === null || roll3 === null) return null;
-    return roll2 + roll3;
-  }
+    if (roll1 === null) return null;
 
-  if (frameIndex >= 9) return null;
-
-  const nextFrame = game.frames[frameIndex + 1];
-  const roll1 = nextFrame.rolls[0].pins;
-
-  if (roll1 === null) return null;
-
-  if (roll1 === 10 && frameIndex < 8) {
-    const frameAfterNext = game.frames[frameIndex + 2];
-    const roll2 = frameAfterNext.rolls[0].pins;
+    if (roll1 === 10) {
+      if (roll2 === null) return null;
+      return roll1 + roll2;
+    }
 
     if (roll2 === null) return null;
     return roll1 + roll2;
   }
 
-  const roll2 = nextFrame.rolls[1].pins;
+  if (frameIndex >= 9) return null;
+
+  const nextFrame = game.frames[frameIndex + 1];
+  const roll1 = nextFrame.rolls[0]?.pins;
+
+  if (roll1 === null) return null;
+
+  /*------------------- If next frame is a strike -------------------*/
+  if (roll1 === 10) {
+    if (frameIndex + 1 === 8) {
+      const tenthFrame = game.frames[9];
+      const tenthRoll1 = tenthFrame.rolls[0]?.pins;
+      if (tenthRoll1 === null) return null;
+      return roll1 + tenthRoll1;
+    } else if (frameIndex + 1 < 8) {
+      const frameAfterNext = game.frames[frameIndex + 2];
+      const roll2 = frameAfterNext.rolls[0]?.pins;
+      if (roll2 === null) return null;
+      return roll1 + roll2;
+    }
+  }
+
+  const roll2 = nextFrame.rolls[1]?.pins;
   if (roll2 === null) return null;
 
   return roll1 + roll2;
 }
 
 function getNextOneRoll(game: BowlingGame, frameIndex: number): number | null {
-  if (frameIndex === 9) {
+  if (frameIndex === 8) {
     const tenthFrame = game.frames[9];
-    const roll3 = tenthFrame.rolls[2].pins;
-    return roll3;
+    const roll1 = tenthFrame.rolls[0]?.pins;
+    return roll1;
   }
 
   if (frameIndex >= 9) return null;
 
   const nextFrame = game.frames[frameIndex + 1];
-  const roll1 = nextFrame.rolls[0].pins;
+  const roll1 = nextFrame.rolls[0]?.pins;
 
   return roll1;
 }
 
 function calculateTenthFrameScore(frame: Frame): number | null {
   let total = 0;
+  const roll1 = frame.rolls[0]?.pins;
+  const roll2 = frame.rolls[1]?.pins;
+  const roll3 = frame.rolls[2]?.pins;
 
-  for (const roll of frame.rolls) {
-    if (roll.pins === null) return null;
-    total += roll.pins;
+  if (roll1 === null || roll2 === null) return null;
+
+  const needsThirdRoll = roll1 === 10 || roll1 + roll2 === 10;
+
+  if (needsThirdRoll) {
+    if (roll3 === null) return null;
+    total = roll1 + roll2 + roll3;
+  } else {
+    total = roll1 + roll2;
   }
 
   return total;
